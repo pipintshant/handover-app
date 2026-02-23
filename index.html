@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Handover IT Ops - Full System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .hidden { display: none; }
+        /* Transisi halus untuk tombol */
+        button { transition: all 0.2s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+    <div id="loginPage" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-8 border-indigo-600">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">HO EDAN</h2>
+            <p class="text-center text-gray-500 mb-8 text-sm">SIKAT MIRING</p>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Email</label>
+                    <input type="email" id="email" required class="w-full mt-1 border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Password</label>
+                    <input type="password" id="password" required class="w-full mt-1 border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" id="btnLogin" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 shadow-lg transform active:scale-95">MASUK</button>
+            </form>
+            <p id="loginError" class="text-red-500 text-xs text-center mt-4 hidden font-bold"></p>
+        </div>
+    </div>
+
+    <div id="mainPage" class="hidden p-4 md:p-8">
+        <div class="max-w-6xl mx-auto space-y-8">
+            
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">🛠 Handover Dashboard</h1>
+                    <p id="userEmail" class="text-[10px] text-indigo-600 font-mono uppercase"></p>
+                </div>
+                <button onclick="handleLogout()" class="bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 shadow">LOGOUT</button>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-600">
+                <h2 id="formTitle" class="text-xl font-bold mb-6 text-gray-800">📝 Form Handover</h2>
+                <form id="handoverForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600">Detail & Remark</label>
+                            <textarea id="detail_remark" required class="w-full mt-1 border rounded-lg p-3 h-32 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Hantem"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600">Has Been Done</label>
+                            <textarea id="has_been_done" class="w-full mt-1 border rounded-lg p-3 h-32 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Hajar"></textarea>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600">Prev PIC</label>
+                                <input type="text" id="previous_pic" required class="w-full mt-1 border rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600">Next PIC</label>
+                                <input type="text" id="next_pic" required class="w-full mt-1 border rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <label class="block text-xs font-bold text-blue-700 mb-2">📷 Lampiran Foto (Bisa > 1)</label>
+                            <input type="file" id="photo_file" accept="image/*" multiple class="text-xs w-full">
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg border border-red-100 flex items-center gap-3">
+                            <button type="button" id="startRec" class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold">REKAM SUARA</button>
+                            <button type="button" id="stopRec" class="bg-gray-800 text-white px-3 py-1 rounded text-xs hidden font-bold">STOP</button>
+                            <audio id="audioPreview" controls class="hidden h-8 flex-1"></audio>
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button type="submit" id="btnSubmit" class="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-indigo-700">SIMPAN DATA</button>
+                            <button type="button" id="btnCancel" onclick="resetForm()" class="hidden bg-gray-400 text-white px-6 rounded-lg font-bold">BATAL</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border">
+                <div class="bg-indigo-600 px-6 py-4 font-bold text-white text-sm">LOG HANDOVER AKTIF</div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-50 border-b">
+                            <tr><th class="p-4">Waktu</th><th class="p-4">PIC</th><th class="p-4">Detail & Done</th><th class="p-4 text-center">Aksi</th></tr>
+                        </thead>
+                        <tbody id="handoverTableBody" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl shadow-lg overflow-hidden border">
+                <div class="bg-gray-200 px-6 py-4 font-bold text-gray-600 text-sm">📁 ARCHIVE & HISTORY</div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-100 border-b text-gray-500">
+                            <tr><th class="p-4">Selesai Pada</th><th class="p-4">PIC</th><th class="p-4">Detail</th><th class="p-4">Media</th></tr>
+                        </thead>
+                        <tbody id="archiveTableBody" class="divide-y bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // 1. KREDENSIAL (PASTIKAN SAMA DENGAN test-db.js)
+    const SUPABASE_URL = 'https://sakoasnmyddrititbumo.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNha29hc25teWRkcml0aXRidW1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDk1MDAsImV4cCI6MjA4NjkyNTUwMH0.b_p835k2cjulQkBrTEHeKGr4TdHCJE0qwaJR48krSIs';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let mediaRecorder, audioBlob, currentEditId = null;
+
+    // --- 2. AUTHENTICATION ---
+    async function checkSession() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) showApp(session.user);
+        else showLogin();
+    }
+
+    document.getElementById('loginForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnLogin');
+        const email = document.getElementById('email').value, password = document.getElementById('password').value;
+        btn.disabled = true; btn.innerText = "⏳ Autentikasi...";
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+            document.getElementById('loginError').innerText = "Gagal: " + error.message;
+            document.getElementById('loginError').classList.remove('hidden');
+            btn.disabled = false; btn.innerText = "MASUK";
+        } else {
+            showApp(data.user);
+        }
+    };
+
+    async function handleLogout() {
+        await supabaseClient.auth.signOut();
+        localStorage.clear();
+        window.location.href = window.location.pathname;
+    }
+
+    function showApp(user) {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+        document.getElementById('userEmail').innerText = "Logged in as: " + user.email;
+        loadAllTables();
+    }
+
+    function showLogin() {
+        document.getElementById('loginPage').classList.remove('hidden');
+    }
+
+    // --- 3. DATA RENDERING ---
+    function renderMedia(photoUrl, voiceUrl) {
+        let html = '<div class="mt-2 flex flex-wrap gap-2 items-center">';
+        if (photoUrl) {
+            photoUrl.split(',').forEach((p, i) => {
+                html += `<a href="${SUPABASE_URL}/storage/v1/object/public/heandover/${p.trim()}" target="_blank" class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-[9px] font-bold hover:bg-blue-200">FOTO ${i+1}</a>`;
+            });
+        }
+        if (voiceUrl) {
+            html += `<audio src="${SUPABASE_URL}/storage/v1/object/public/heandover/${voiceUrl}" controls class="h-6 w-32"></audio>`;
+        }
+        return html + '</div>';
+    }
+
+    async function loadAllTables() {
+        try {
+            const { data: active } = await supabaseClient.from('handover').select('*').order('id', { ascending: false });
+            const { data: archive } = await supabaseClient.from('handover_archive').select('*').order('id', { ascending: false });
+
+            // Render Aktif
+            document.getElementById('handoverTableBody').innerHTML = (active || []).map(item => `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="p-4 text-gray-400 font-mono">${new Date(item.updated_at).toLocaleString('id-ID')}</td>
+                    <td class="p-4"><b>${item.previous_shift_pic}</b><br><span class="text-indigo-500">→ ${item.next_shift_pic}</span></td>
+                    <td class="p-4"><b>${item.detail_remark}</b><br><span class="text-green-600 font-medium">Done: ${item.has_been_done}</span> ${renderMedia(item.photo_url, item.voice_url)}</td>
+                    <td class="p-4 text-center flex flex-col gap-1">
+                        <button onclick="editData('${item.id}')" class="bg-yellow-400 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-yellow-500">EDIT</button>
+                        <button onclick="archiveData('${item.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-600">ARCHIVE</button>
+                    </td>
+                </tr>`).join('');
+
+            // Render Archive
+            document.getElementById('archiveTableBody').innerHTML = (archive || []).map(item => `
+                <tr class="bg-gray-50/50 border-b">
+                    <td class="p-4 text-[10px] font-mono text-gray-400">${new Date(item.updated_at).toLocaleString('id-ID')}</td>
+                    <td class="p-4 text-gray-500 font-bold">${item.previous_shift_pic}</td>
+                    <td class="p-4 text-gray-500 italic">${item.detail_remark}</td>
+                    <td class="p-4">${renderMedia(item.photo_url, item.voice_url)}</td>
+                </tr>`).join('');
+        } catch (e) { console.error(e); }
+    }
+
+    // --- 4. FORM ACTIONS ---
+    document.getElementById('handoverForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true; btn.innerText = "⏳ Menyimpan...";
+
+        try {
+            // Upload Photos
+            let photoPaths = [];
+            const files = document.getElementById('photo_file').files;
+            for(let i=0; i<files.length; i++) {
+                const name = `photos/${Date.now()}_${i}.png`;
+                await supabaseClient.storage.from('heandover').upload(name, files[i]);
+                photoPaths.push(name);
+            }
+
+            // Upload Voice
+            let voicePath = null;
+            if (audioBlob) {
+                voicePath = `voices/${Date.now()}.webm`;
+                await supabaseClient.storage.from('heandover').upload(voicePath, audioBlob);
+            }
+
+            const payload = {
+                detail_remark: document.getElementById('detail_remark').value,
+                previous_shift_pic: document.getElementById('previous_pic').value,
+                next_shift_pic: document.getElementById('next_pic').value,
+                has_been_done: document.getElementById('has_been_done').value,
+                updated_at: new Date().toISOString()
+            };
+
+            if(photoPaths.length > 0) payload.photo_url = photoPaths.join(',');
+            if(voicePath) payload.voice_url = voicePath;
+
+            let response;
+            if(currentEditId) {
+                response = await supabaseClient.from('handover').update(payload).eq('id', currentEditId);
+            } else {
+                // Tambahkan 'number' agar tidak error not-null
+                payload.number = "HND-" + new Date().getTime().toString().slice(-6);
+                response = await supabaseClient.from('handover').insert([payload]);
+            }
+
+            if (response.error) throw response.error;
+
+            alert("Data Berhasil Disimpan!");
+            resetForm(); loadAllTables();
+        } catch(err) { 
+            alert("Error: " + err.message); 
+        } finally { btn.disabled = false; btn.innerText = "SIMPAN DATA"; }
+    };
+
+    async function editData(id) {
+        currentEditId = id;
+        const { data } = await supabaseClient.from('handover').select('*').eq('id', id).single();
+        if(data) {
+            document.getElementById('detail_remark').value = data.detail_remark;
+            document.getElementById('has_been_done').value = data.has_been_done;
+            document.getElementById('previous_pic').value = data.previous_shift_pic;
+            document.getElementById('next_pic').value = data.next_shift_pic;
+            
+            document.getElementById('formTitle').innerText = "✏️ Edit Mode";
+            document.getElementById('btnSubmit').innerText = "UPDATE DATA";
+            document.getElementById('btnSubmit').classList.replace('bg-indigo-600', 'bg-yellow-500');
+            document.getElementById('btnCancel').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    async function archiveData(id) {
+        if(!confirm("Pindahkan ke Archive?")) return;
+        const { data: item } = await supabaseClient.from('handover').select('*').eq('id', id).single();
+        if(item) {
+            await supabaseClient.from('handover_archive').insert([item]);
+            await supabaseClient.from('handover').delete().eq('id', id);
+            loadAllTables();
+        }
+    }
+
+    function resetForm() {
+        currentEditId = null;
+        document.getElementById('handoverForm').reset();
+        document.getElementById('formTitle').innerText = "📝 Form Handover";
+        document.getElementById('btnSubmit').innerText = "SIMPAN DATA";
+        document.getElementById('btnSubmit').classList.replace('bg-yellow-500', 'bg-indigo-600');
+        document.getElementById('btnCancel').classList.add('hidden');
+        document.getElementById('audioPreview').classList.add('hidden');
+        audioBlob = null;
+    }
+
+    // --- 5. VOICE RECORDING ---
+    document.getElementById('startRec').onclick = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            let chunks = [];
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                document.getElementById('audioPreview').src = URL.createObjectURL(audioBlob);
+                document.getElementById('audioPreview').classList.remove('hidden');
+            };
+            mediaRecorder.start();
+            document.getElementById('startRec').classList.add('hidden');
+            document.getElementById('stopRec').classList.remove('hidden');
+        } catch(e) { alert("Mic tidak diizinkan"); }
+    };
+    document.getElementById('stopRec').onclick = () => {
+        mediaRecorder.stop();
+        document.getElementById('startRec').classList.remove('hidden');
+        document.getElementById('stopRec').classList.add('hidden');
+    };
+
+    checkSession();
+</script>
+</body>
+</html>
