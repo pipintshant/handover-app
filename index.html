@@ -195,8 +195,8 @@ let mediaRecorder, audioBlob, currentEditId = null;
 
     async function loadAllTables() {
         try {
-            const { data: active } = await supabaseClient.from('handover').select('*').order('id', { ascending: false });
-            const { data: archive } = await supabaseClient.from('handover_archive').select('*').order('id', { ascending: false });
+            const { data: active } = await supabaseClient.from('handover').select('*').order('id', { ascending: true });
+            const { data: archive } = await supabaseClient.from('handover_archive').select('*').order('id', { ascending: true });
 
             // Render Aktif
             document.getElementById('handoverTableBody').innerHTML = (active || []).map(item => `
@@ -205,12 +205,14 @@ let mediaRecorder, audioBlob, currentEditId = null;
                     <td class="p-4"><b>${item.previous_shift_pic}</b><br><span class="text-indigo-500">→ ${item.next_shift_pic}</span></td>
                     <td class="p-4">
                         <b class="whitespace-pre-wrap break-words block mb-1">${item.detail_remark}</b>
-                        <span class="text-green-600 font-medium italic whitespace-pre-wrap break-words">Done: ${item.has_been_done}</span>
+                        <span class="text-green-600 font-medium italic whitespace-pre-wrap break-words">Has Been Done : ${item.has_been_done}</span>
                         ${renderMedia(item.photo_url, item.voice_url)}
                         </td>
-                    <td class="p-4 text-center flex flex-col gap-1">
+                    <td class="p-4 align-middle text-center">
+                        <div class="flex flex-col gap-2 justify-center">
                         <button onclick="editData('${item.id}')" class="bg-yellow-400 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-yellow-500">EDIT</button>
                         <button onclick="archiveData('${item.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-600">ARCHIVE</button>
+                        </div>
                     </td>
                 </tr>`).join('');
 
