@@ -10,6 +10,11 @@
         .hidden { display: none; }
         /* Transisi halus untuk tombol */
         button { transition: all 0.2s ease-in-out; }
+
+        tb b, tb span {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -198,7 +203,11 @@ let mediaRecorder, audioBlob, currentEditId = null;
                 <tr class="hover:bg-gray-50 border-b">
                     <td class="p-4 text-gray-500 font-medium">${formatKeWIB(item.updated_at)}</td>
                     <td class="p-4"><b>${item.previous_shift_pic}</b><br><span class="text-indigo-500">→ ${item.next_shift_pic}</span></td>
-                    <td class="p-4"><b>${item.detail_remark}</b><br><span class="text-green-600 font-medium">Done: ${item.has_been_done}</span> ${renderMedia(item.photo_url, item.voice_url)}</td>
+                    <td class="p-4">
+                        <b class="whitespace-pre-wrap break-words block mb-1">${item.detail_remark}</b>
+                        <span class="text-green-600 font-medium italic whitespace-pre-wrap break-words">Done: ${item.has_been_done}</span>
+                        ${renderMedia(item.photo_url, item.voice_url)}
+                        </td>
                     <td class="p-4 text-center flex flex-col gap-1">
                         <button onclick="editData('${item.id}')" class="bg-yellow-400 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-yellow-500">EDIT</button>
                         <button onclick="archiveData('${item.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-red-600">ARCHIVE</button>
@@ -208,11 +217,11 @@ let mediaRecorder, audioBlob, currentEditId = null;
             // Render Archive
             document.getElementById('archiveTableBody').innerHTML = (archive || []).map(item => `
                 <tr class="bg-gray-50/50 border-b">
-                    <td class="p-4 text-[10px] font-mono text-gray-400">${new Date(item.updated_at).toLocaleString('id-ID')}</td>
-                    <td class="p-4 text-gray-500 font-bold">${item.previous_shift_pic}</td>
-                    <td class="p-4 text-gray-500 italic">${item.detail_remark}</td>
-                    <td class="p-4">${renderMedia(item.photo_url, item.voice_url)}</td>
-                </tr>`).join('');
+        <td class="p-4 text-[10px] font-mono text-gray-400">${formatKeWIB(item.updated_at)}</td>
+        <td class="p-4 text-gray-500 font-bold">${item.previous_shift_pic}</td>
+        <td class="p-4 text-gray-600 whitespace-pre-wrap break-words">${item.detail_remark}</td>
+        <td class="p-4">${renderMedia(item.photo_url, item.voice_url)}</td>
+    </tr>`).join('');
         } catch (e) { console.error(e); }
     }
 
